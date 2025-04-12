@@ -4,7 +4,7 @@ from tensorflow.keras import layers, models
 
 def build_model():
     model = models.Sequential([
-        layers.Rescaling(1./255, input_shape=(256, 256, 3)),
+        layers.Rescaling(1./255, input_shape=(64, 64, 3)),
         layers.Conv2D(32, (3, 3), activation='relu'),
         layers.MaxPooling2D((2, 2)),
         layers.Conv2D(64, (3, 3), activation='relu'),
@@ -24,25 +24,25 @@ train_datagen = ImageDataGenerator(
 
 train_generator = train_datagen.flow_from_directory(
     directory="../data/train_processed",
-    target_size=(256, 256),
+    target_size=(64, 64),
     batch_size=32,
     class_mode='binary'
 )
 
 valid_generator = ImageDataGenerator().flow_from_directory(
     directory="../data/valid_processed",
-    target_size=(256, 256),
+    target_size=(64, 64),
     batch_size=32,
     class_mode='binary'
 )
 
 model = build_model()
+model.summary()
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
 # train
 checkpoint = ModelCheckpoint(
     "outputs/model_weights.h5",
-#    monitor='val_accuracy',
     save_best_only=True,
     save_weights_only=False,
     mode='max'
