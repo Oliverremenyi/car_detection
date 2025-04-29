@@ -1,19 +1,17 @@
+import argparse
+from model import build_cnn, build_resnet, build_googlenet
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.callbacks import ModelCheckpoint
-from tensorflow.keras import layers, models
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import ReduceLROnPlateau
+import numpy as np
+import os
 
-def build_model():
-    model = models.Sequential([
-        layers.Rescaling(1./255, input_shape=(64, 64, 3)),
-        layers.Conv2D(32, (3, 3), activation='relu'),
-        layers.MaxPooling2D((2, 2)),
-        layers.Conv2D(64, (3, 3), activation='relu'),
-        layers.MaxPooling2D((2, 2)),
-        layers.Flatten(),
-        layers.Dense(128, activation='relu'),
-        layers.Dense(1, activation='sigmoid')
-    ])
-    return model
+parser = argparse.ArgumentParser(description='Train parking spot classification model')
+parser.add_argument('--model', type=str, required=True,
+                    choices=['CNN', 'ResNet50', 'GoogLeNet'])
+args = parser.parse_args()
+
 
 train_datagen = ImageDataGenerator(
     rotation_range=20,
@@ -23,34 +21,47 @@ train_datagen = ImageDataGenerator(
 )
 
 train_generator = train_datagen.flow_from_directory(
-    directory="../data/train_processed",
-    target_size=(64, 64),
-    batch_size=32,
+    directory="../data/train_processed_small",
+    target_size=(150, 150),
+    batch_size=16,
     class_mode='binary'
 )
 
 valid_generator = ImageDataGenerator().flow_from_directory(
-    directory="../data/valid_processed",
-    target_size=(64, 64),
-    batch_size=32,
+    directory="../data/valid_processed_small",
+    target_size=(150, 150),
+    batch_size=16,
     class_mode='binary'
 )
 
-model = build_model()
-model.summary()
-model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+# Model selection
+if args.model == "CNN":
+    model = build_cnn()
+elif "ResNet" in args.model:
+    model = build_resnet()
+elif args.model == "GoogLeNet":
+    model = build_googlenet()
 
-# train
+# model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+model.compile(optimizer=Adam(learning_rate=0.0001),
+              loss='binary_crossentropy', metrics=['accuracy'])
+
+# Training
 checkpoint = ModelCheckpoint(
-    "outputs/model_weights.h5",
+    f"outputs/{args.model}_weights.h5",
     save_best_only=True,
-    save_weights_only=False,
+    monitor='val_accuracy',
     mode='max'
 )
+
+reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=2)
 
 history = model.fit(
     train_generator,
     validation_data=valid_generator,
     epochs=10,
-    callbacks=[checkpoint]
+    callbacks=[checkpoint, reduce_lr]
 )
+
+os.makedirs("outputs", exist_ok=True)
+np.save(f"outputs/{args.model}_history.npy", history.history)
