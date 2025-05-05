@@ -7,18 +7,13 @@ import os
 
 MODELS = ["CNN", "ResNet50", "GoogLeNet"]
 
-# Configure test generator
 test_datagen = ImageDataGenerator().flow_from_directory(
-    directory="../data/test_processed_small",
+    directory="../data/test_processed",
     target_size=(150, 150),
     batch_size=32,
     class_mode='binary',
     shuffle=False
 )
-
-# Dictionary to store all histories (if available)
-histories = {}
-
 
 def evaluate_model(model_name):
     # Load model

@@ -12,7 +12,6 @@ parser.add_argument('--model', type=str, required=True,
                     choices=['CNN', 'ResNet50', 'GoogLeNet'])
 args = parser.parse_args()
 
-
 train_datagen = ImageDataGenerator(
     rotation_range=20,
     width_shift_range=0.2,
@@ -21,14 +20,16 @@ train_datagen = ImageDataGenerator(
 )
 
 train_generator = train_datagen.flow_from_directory(
-    directory="../data/train_processed_small",
+    directory="../data/train_processed",
+    classes=['empty', 'occupied'],
     target_size=(150, 150),
     batch_size=16,
     class_mode='binary'
 )
 
 valid_generator = ImageDataGenerator().flow_from_directory(
-    directory="../data/valid_processed_small",
+    directory="../data/valid_processed",
+    classes=['empty', 'occupied'],
     target_size=(150, 150),
     batch_size=16,
     class_mode='binary'
@@ -42,7 +43,6 @@ elif "ResNet" in args.model:
 elif args.model == "GoogLeNet":
     model = build_googlenet()
 
-# model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 model.compile(optimizer=Adam(learning_rate=0.0001),
               loss='binary_crossentropy', metrics=['accuracy'])
 
